@@ -60,8 +60,44 @@ jobs:
       - name: Rename universal APK
         run: find app/build/outputs/apk -name "*.apk" ! -name "nuvio-arm64.apk" ! -name "nuvio-v7a.apk" | head -1 | xargs -I{} mv {} app/build/outputs/apk/full/debug/nuvio-universal.apk
 
-      - name: Upload APKs
-        uses: actions/upload-artifact@v4
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: nuvio-all
-          path: app/build/outputs/apk/full/debug/*.apk
+          tag_name: build-${{ github.run_number }}
+          release_name: "Build #${{ github.run_number }}"
+          body: "Build automatica dal branch ${{ github.ref_name }}"
+          draft: false
+          prerelease: true
+
+      - name: Upload arm64 APK to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/apk/full/debug/nuvio-arm64.apk
+          asset_name: nuvio-arm64.apk
+          asset_content_type: application/vnd.android.package-archive
+
+      - name: Upload v7a APK to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/apk/full/debug/nuvio-v7a.apk
+          asset_name: nuvio-v7a.apk
+          asset_content_type: application/vnd.android.package-archive
+
+      - name: Upload universal APK to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/apk/full/debug/nuvio-universal.apk
+          asset_name: nuvio-universal.apk
+          asset_content_type: application/vnd.android.package-archive
