@@ -21,20 +21,43 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
+      - name: Generate temporary keystore
+        run: |
+          keytool -genkey -v -keystore nuviotv.jks \
+            -alias nuviotv \
+            -keyalg RSA -keysize 2048 -validity 365 \
+            -storepass testpassword \
+            -keypass testpassword \
+            -dname "CN=Test, OU=Test, O=Test, L=Test, S=Test, C=US"
+
       - name: Build APK arm64-v8a
-        run: ./gradlew :app:assembleFullDebug -Pandroid.injected.build.abi=arm64-v8a
+        run: |
+          ./gradlew :app:assembleFullDebug \
+            -Pandroid.injected.build.abi=arm64-v8a \
+            -PKEYSTORE_PASSWORD=testpassword \
+            -PKEY_ALIAS=nuviotv \
+            -PKEY_PASSWORD=testpassword
 
       - name: Rename arm64 APK
         run: mv app/build/outputs/apk/full/debug/*.apk app/build/outputs/apk/full/debug/nuvio-arm64.apk
 
       - name: Build APK armeabi-v7a
-        run: ./gradlew :app:assembleFullDebug -Pandroid.injected.build.abi=armeabi-v7a
+        run: |
+          ./gradlew :app:assembleFullDebug \
+            -Pandroid.injected.build.abi=armeabi-v7a \
+            -PKEYSTORE_PASSWORD=testpassword \
+            -PKEY_ALIAS=nuviotv \
+            -PKEY_PASSWORD=testpassword
 
       - name: Rename v7a APK
         run: mv app/build/outputs/apk/full/debug/*.apk app/build/outputs/apk/full/debug/nuvio-v7a.apk
 
       - name: Build APK universal
-        run: ./gradlew :app:assembleFullDebug
+        run: |
+          ./gradlew :app:assembleFullDebug \
+            -PKEYSTORE_PASSWORD=testpassword \
+            -PKEY_ALIAS=nuviotv \
+            -PKEY_PASSWORD=testpassword
 
       - name: Rename universal APK
         run: mv app/build/outputs/apk/full/debug/app-full-debug.apk app/build/outputs/apk/full/debug/nuvio-universal.apk
