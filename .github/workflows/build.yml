@@ -26,38 +26,36 @@ jobs:
           keytool -genkey -v -keystore nuviotv.jks \
             -alias nuviotv \
             -keyalg RSA -keysize 2048 -validity 365 \
-            -storepass testpassword \
-            -keypass testpassword \
+            -storepass 815787 \
+            -keypass 815787 \
             -dname "CN=Test, OU=Test, O=Test, L=Test, S=Test, C=US"
 
       - name: Build APK arm64-v8a
-        run: |
-          ./gradlew :app:assembleFullDebug \
-            -Pandroid.injected.build.abi=arm64-v8a \
-            -PKEYSTORE_PASSWORD=testpassword \
-            -PKEY_ALIAS=nuviotv \
-            -PKEY_PASSWORD=testpassword
+        run: ./gradlew :app:assembleFullDebug -Pandroid.injected.build.abi=arm64-v8a
+        env:
+          NUVIO_RELEASE_KEY_ALIAS: nuviotv
+          NUVIO_RELEASE_KEY_PASSWORD: "815787"
+          NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
       - name: Rename arm64 APK
         run: mv app/build/outputs/apk/full/debug/*.apk app/build/outputs/apk/full/debug/nuvio-arm64.apk
 
       - name: Build APK armeabi-v7a
-        run: |
-          ./gradlew :app:assembleFullDebug \
-            -Pandroid.injected.build.abi=armeabi-v7a \
-            -PKEYSTORE_PASSWORD=testpassword \
-            -PKEY_ALIAS=nuviotv \
-            -PKEY_PASSWORD=testpassword
+        run: ./gradlew :app:assembleFullDebug -Pandroid.injected.build.abi=armeabi-v7a
+        env:
+          NUVIO_RELEASE_KEY_ALIAS: nuviotv
+          NUVIO_RELEASE_KEY_PASSWORD: "815787"
+          NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
       - name: Rename v7a APK
         run: mv app/build/outputs/apk/full/debug/*.apk app/build/outputs/apk/full/debug/nuvio-v7a.apk
 
       - name: Build APK universal
-        run: |
-          ./gradlew :app:assembleFullDebug \
-            -PKEYSTORE_PASSWORD=testpassword \
-            -PKEY_ALIAS=nuviotv \
-            -PKEY_PASSWORD=testpassword
+        run: ./gradlew :app:assembleFullDebug
+        env:
+          NUVIO_RELEASE_KEY_ALIAS: nuviotv
+          NUVIO_RELEASE_KEY_PASSWORD: "815787"
+          NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
       - name: Rename universal APK
         run: mv app/build/outputs/apk/full/debug/app-full-debug.apk app/build/outputs/apk/full/debug/nuvio-universal.apk
