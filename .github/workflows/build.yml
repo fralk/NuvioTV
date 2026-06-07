@@ -33,7 +33,6 @@ jobs:
             -keypass 815787 \
             -dname "CN=Test, OU=Test, O=Test, L=Test, S=Test, C=US"
 
-      # Creiamo una cartella "dist" sicura che Gradle non toccherà
       - name: Create artifacts directory
         run: mkdir -p dist
 
@@ -47,11 +46,20 @@ jobs:
 
       - name: Save arm64 APK
         run: |
-          APK=$(find app/build/outputs/apk/ -name "*.apk" -type f 2>/dev/null | head -1)
-          echo "Found arm64 APK: $APK"
-          cp "$APK" dist/nuvio-arm64.apk
-          # Puliamo l'output per non confondere i passaggi successivi
-          rm -rf app/build/outputs/apk/*
+          # Cerchiamo qualsiasi file .apk o .aab generato nel progetto
+          FILE=$(find . -type f \( -name "*.apk" -o -name "*.aab" \) 2>/dev/null | grep -v "dist/" | head -1)
+          if [ -z "$FILE" ]; then
+            echo "[ERROR] Nessun file APK o AAB trovato dopo la build arm64!"
+            echo "Ecco la struttura dei file generati per capire dove sono finiti:"
+            find . -maxdepth 4 -not -path '*/.*'
+            exit 1
+          fi
+          echo "Found file: $FILE"
+          # Estraiamo l'estensione originale (.apk o .aab)
+          EXT="${FILE##*.}"
+          cp "$FILE" "dist/nuvio-arm64.$EXT"
+          # Puliamo solo i file generati per non ritrovarli al prossimo step
+          find . -type f \( -name "*.apk" -o -name "*.aab" \) -not -path "./dist/*" -delete
 
       # --- 2. ARMEABI-V7A ---
       - name: Build APK armeabi-v7a
@@ -63,10 +71,15 @@ jobs:
 
       - name: Save v7a APK
         run: |
-          APK=$(find app/build/outputs/apk/ -name "*.apk" -type f 2>/dev/null | head -1)
-          echo "Found v7a APK: $APK"
-          cp "$APK" dist/nuvio-v7a.apk
-          rm -rf app/build/outputs/apk/*
+          FILE=$(find . -type f \( -name "*.apk" -o -name "*.aab" \) 2>/dev/null | grep -v "dist/" | head -1)
+          if [ -z "$FILE" ]; then
+            echo "[ERROR] Nessun file APK o AAB trovato dopo la build v7a!"
+            exit 1
+          fi
+          echo "Found file: $FILE"
+          EXT="${FILE##*.}"
+          cp "$FILE" "dist/nuvio-v7a.$EXT"
+          find . -type f \( -name "*.apk" -o -name "*.aab" \) -not -path "./dist/*" -delete
 
       # --- 3. UNIVERSAL ---
       - name: Build APK universal
@@ -81,9 +94,12 @@ jobs:
       - name: Save universal APK
         if: steps.build_universal.outcome == 'success'
         run: |
-          APK=$(find app/build/outputs/apk/ -name "*.apk" -type f 2>/dev/null | head -1)
-          echo "Found universal APK: $APK"
-          cp "$APK" dist/nuvio-universal.apk
+          FILE=$(find . -type f \( -name "*.apk" -o -name "*.aab" \) 2>/dev/null | grep -v "dist/" | head -1)
+          if [ ! -z "$FILE" ]; then
+            echo "Found file: $FILE"
+            EXT="${FILE##*.}"
+            cp "$FILE" "dist/nuvio-universal.$EXT"
+          fi
 
       # --- RELEASE AND UPLOAD ---
       - name: Create Release
@@ -98,33 +114,41 @@ jobs:
           draft: false
           prerelease: true
 
-      - name: Upload arm64 APK to Release
+      - name: Upload arm64 Artifact
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/nuvio-arm64.apk
-          asset_name: nuvio-arm64.apk
-          asset_content_type: application/vnd.android.package-archive
+          asset_path: ${{ (find dist/ -name "nuvio-arm64.*" | head -1) }}
+          asset_name: ${{ (basename $(find dist/ -name "nuvio-arm64.*" | head -1)) }}
+          asset_content_type: application/octet-stream
 
-      - name: Upload v7a APK to Release
+      - name: Upload v7a Artifact
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/nuvio-v7a.apk
-          asset_name: nuvio-v7a.apk
-          asset_content_type: application/vnd.android.package-archive
+          asset_path: ${{ (find dist/ -name "nuvio-v7a.*" | head -1) }}
+          asset_name: ${{ (basename $(find dist/ -name "nuvio-v7a.*" | head -1)) }}
+          asset_content_type: application/octet-stream
 
-      - name: Upload universal APK to Release
-        if: steps.build_universal.outcome == 'success' && hashFiles('dist/nuvio-universal.apk') != ''
+      - name: Upload universal Artifact
+        if: steps.build_universal.outcome == 'success'
+        run: |
+          UNI_FILE=$(find dist/ -name "nuvio-universal.*" | head -1)
+          if [ ! -z "$UNI_FILE" ]; then
+            echo "Uploading universal artifact..."
+          fi
+        # Nota: Per caricare dinamicamente l'estensione nell'azione usiamo uno step bash standard più flessibile per l'universal
+      - name: Upload universal Artifact (Action)
+        if: steps.build_universal.outcome == 'success'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/nuvio-universal.apk
-          asset_name: nuvio-universal.apk
-          asset_content_type: application/vnd.android.package-archive
+          asset_path: ${{ (find dist/ -name "nuvio-universal.*" | head -1) }}
+          asset_name: ${{ (basename $(find dist/ -name "nuvio-universal.*" | head -1)) }}
+          asset_content_type: application/octet-stream
