@@ -37,8 +37,15 @@ jobs:
           NUVIO_RELEASE_KEY_PASSWORD: "815787"
           NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
+      - name: Find APK location
+        run: find app/build/outputs -name "*.apk" -type f
+
       - name: Rename arm64 APK
-        run: find app/build/outputs/apk -name "*.apk" | head -1 | xargs -I{} mv {} app/build/outputs/apk/full/debug/nuvio-arm64.apk
+        run: |
+          APK=$(find app/build/outputs -name "*.apk" -type f | head -1)
+          echo "Found APK: $APK"
+          mkdir -p app/build/outputs/apk/full/debug
+          cp "$APK" app/build/outputs/apk/full/debug/nuvio-arm64.apk
 
       - name: Build APK armeabi-v7a
         run: ./gradlew :app:assembleFullDebug -Pandroid.injected.build.abi=armeabi-v7a
