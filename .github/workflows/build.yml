@@ -22,7 +22,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Set Gradle JVM args
-        run: echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m" >> gradle.properties
+        run: printf "\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m\n" >> gradle.properties
 
       - name: Generate temporary keystore
         run: |
