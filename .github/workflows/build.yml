@@ -33,6 +33,11 @@ jobs:
             -keypass 815787 \
             -dname "CN=Test, OU=Test, O=Test, L=Test, S=Test, C=US"
 
+      # Creiamo una cartella "dist" sicura che Gradle non toccherà
+      - name: Create artifacts directory
+        run: mkdir -p dist
+
+      # --- 1. ARM64 ---
       - name: Build APK arm64-v8a
         run: ./gradlew :app:assembleFullDebug -Pandroid.injected.build.abi=arm64-v8a
         env:
@@ -40,16 +45,15 @@ jobs:
           NUVIO_RELEASE_KEY_PASSWORD: "815787"
           NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
-      - name: Find APK location
-        run: find . -name "*.apk" -type f 2>/dev/null
-
-      - name: Rename arm64 APK
+      - name: Save arm64 APK
         run: |
-          APK=$(find . -name "*.apk" -type f 2>/dev/null | head -1)
-          echo "Found APK: $APK"
-          mkdir -p app/build/outputs/apk/full/debug
-          cp "$APK" app/build/outputs/apk/full/debug/nuvio-arm64.apk
+          APK=$(find app/build/outputs/apk/ -name "*.apk" -type f 2>/dev/null | head -1)
+          echo "Found arm64 APK: $APK"
+          cp "$APK" dist/nuvio-arm64.apk
+          # Puliamo l'output per non confondere i passaggi successivi
+          rm -rf app/build/outputs/apk/*
 
+      # --- 2. ARMEABI-V7A ---
       - name: Build APK armeabi-v7a
         run: ./gradlew :app:assembleFullDebug -Pandroid.injected.build.abi=armeabi-v7a
         env:
@@ -57,12 +61,14 @@ jobs:
           NUVIO_RELEASE_KEY_PASSWORD: "815787"
           NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
-      - name: Rename v7a APK
+      - name: Save v7a APK
         run: |
-          APK=$(find . -name "*.apk" -type f 2>/dev/null | grep -v "nuvio-arm64" | head -1)
-          echo "Found APK: $APK"
-          cp "$APK" app/build/outputs/apk/full/debug/nuvio-v7a.apk
+          APK=$(find app/build/outputs/apk/ -name "*.apk" -type f 2>/dev/null | head -1)
+          echo "Found v7a APK: $APK"
+          cp "$APK" dist/nuvio-v7a.apk
+          rm -rf app/build/outputs/apk/*
 
+      # --- 3. UNIVERSAL ---
       - name: Build APK universal
         continue-on-error: true
         id: build_universal
@@ -72,13 +78,14 @@ jobs:
           NUVIO_RELEASE_KEY_PASSWORD: "815787"
           NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
-      - name: Rename universal APK
+      - name: Save universal APK
         if: steps.build_universal.outcome == 'success'
         run: |
-          APK=$(find . -name "*.apk" -type f 2>/dev/null | grep -v "nuvio-arm64" | grep -v "nuvio-v7a" | head -1)
-          echo "Found APK: $APK"
-          cp "$APK" app/build/outputs/apk/full/debug/nuvio-universal.apk
+          APK=$(find app/build/outputs/apk/ -name "*.apk" -type f 2>/dev/null | head -1)
+          echo "Found universal APK: $APK"
+          cp "$APK" dist/nuvio-universal.apk
 
+      # --- RELEASE AND UPLOAD ---
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -97,7 +104,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: app/build/outputs/apk/full/debug/nuvio-arm64.apk
+          asset_path: dist/nuvio-arm64.apk
           asset_name: nuvio-arm64.apk
           asset_content_type: application/vnd.android.package-archive
 
@@ -107,17 +114,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: app/build/outputs/apk/full/debug/nuvio-v7a.apk
+          asset_path: dist/nuvio-v7a.apk
           asset_name: nuvio-v7a.apk
           asset_content_type: application/vnd.android.package-archive
 
       - name: Upload universal APK to Release
-        if: steps.build_universal.outcome == 'success'
+        if: steps.build_universal.outcome == 'success' && hashFiles('dist/nuvio-universal.apk') != ''
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: app/build/outputs/apk/full/debug/nuvio-universal.apk
+          asset_path: dist/nuvio-universal.apk
           asset_name: nuvio-universal.apk
           asset_content_type: application/vnd.android.package-archive
