@@ -662,7 +662,9 @@ internal fun PlayerRuntimeController.initializePlayer(
                 }
 
             val bandwidthMeter = DefaultBandwidthMeter.Builder(context)
-                .setInitialBitrateEstimate(ADAPTIVE_INITIAL_BITRATE_ESTIMATE_BPS)
+                .setInitialBitrateEstimate(C.NETWORK_TYPE_WIFI, ADAPTIVE_INITIAL_BITRATE_ESTIMATE_BPS)
+                .setInitialBitrateEstimate(C.NETWORK_TYPE_ETHERNET, ADAPTIVE_INITIAL_BITRATE_ESTIMATE_BPS)
+                .setInitialBitrateEstimate(C.NETWORK_TYPE_UNKNOWN, ADAPTIVE_INITIAL_BITRATE_ESTIMATE_BPS)
                 .build()
 
             if (showLoadingStatus) _uiState.update { it.copy(loadingMessage = context.getString(R.string.player_loading_building)) }
