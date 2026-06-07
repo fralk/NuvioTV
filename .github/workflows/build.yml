@@ -38,7 +38,7 @@ jobs:
           NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
       - name: Rename arm64 APK
-        run: mv app/build/outputs/apk/full/debug/*.apk app/build/outputs/apk/full/debug/nuvio-arm64.apk
+        run: find app/build/outputs/apk -name "*.apk" | head -1 | xargs -I{} mv {} app/build/outputs/apk/full/debug/nuvio-arm64.apk
 
       - name: Build APK armeabi-v7a
         run: ./gradlew :app:assembleFullDebug -Pandroid.injected.build.abi=armeabi-v7a
@@ -48,7 +48,7 @@ jobs:
           NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
       - name: Rename v7a APK
-        run: mv app/build/outputs/apk/full/debug/*.apk app/build/outputs/apk/full/debug/nuvio-v7a.apk
+        run: find app/build/outputs/apk -name "*.apk" ! -name "nuvio-arm64.apk" | head -1 | xargs -I{} mv {} app/build/outputs/apk/full/debug/nuvio-v7a.apk
 
       - name: Build APK universal
         run: ./gradlew :app:assembleFullDebug
@@ -58,7 +58,7 @@ jobs:
           NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
       - name: Rename universal APK
-        run: mv app/build/outputs/apk/full/debug/app-full-debug.apk app/build/outputs/apk/full/debug/nuvio-universal.apk
+        run: find app/build/outputs/apk -name "*.apk" ! -name "nuvio-arm64.apk" ! -name "nuvio-v7a.apk" | head -1 | xargs -I{} mv {} app/build/outputs/apk/full/debug/nuvio-universal.apk
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
