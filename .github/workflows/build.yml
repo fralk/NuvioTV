@@ -21,6 +21,9 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
+      - name: Set Gradle JVM args
+        run: echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m" >> gradle.properties
+
       - name: Generate temporary keystore
         run: |
           keytool -genkey -v -keystore nuviotv.jks \
@@ -61,6 +64,8 @@ jobs:
           cp "$APK" app/build/outputs/apk/full/debug/nuvio-v7a.apk
 
       - name: Build APK universal
+        continue-on-error: true
+        id: build_universal
         run: ./gradlew :app:assembleFullDebug
         env:
           NUVIO_RELEASE_KEY_ALIAS: nuviotv
@@ -68,6 +73,7 @@ jobs:
           NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
       - name: Rename universal APK
+        if: steps.build_universal.outcome == 'success'
         run: |
           APK=$(find . -name "*.apk" -type f 2>/dev/null | grep -v "nuvio-arm64" | grep -v "nuvio-v7a" | head -1)
           echo "Found APK: $APK"
@@ -106,6 +112,7 @@ jobs:
           asset_content_type: application/vnd.android.package-archive
 
       - name: Upload universal APK to Release
+        if: steps.build_universal.outcome == 'success'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
