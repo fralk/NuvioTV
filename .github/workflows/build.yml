@@ -38,11 +38,11 @@ jobs:
           NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
       - name: Find APK location
-        run: find app/build/outputs -name "*.apk" -type f
+        run: find . -name "*.apk" -type f 2>/dev/null
 
       - name: Rename arm64 APK
         run: |
-          APK=$(find app/build/outputs -name "*.apk" -type f | head -1)
+          APK=$(find . -name "*.apk" -type f 2>/dev/null | head -1)
           echo "Found APK: $APK"
           mkdir -p app/build/outputs/apk/full/debug
           cp "$APK" app/build/outputs/apk/full/debug/nuvio-arm64.apk
@@ -55,7 +55,10 @@ jobs:
           NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
       - name: Rename v7a APK
-        run: find app/build/outputs/apk -name "*.apk" ! -name "nuvio-arm64.apk" | head -1 | xargs -I{} mv {} app/build/outputs/apk/full/debug/nuvio-v7a.apk
+        run: |
+          APK=$(find . -name "*.apk" -type f 2>/dev/null | grep -v "nuvio-arm64" | head -1)
+          echo "Found APK: $APK"
+          cp "$APK" app/build/outputs/apk/full/debug/nuvio-v7a.apk
 
       - name: Build APK universal
         run: ./gradlew :app:assembleFullDebug
@@ -65,7 +68,10 @@ jobs:
           NUVIO_RELEASE_STORE_PASSWORD: "815787"
 
       - name: Rename universal APK
-        run: find app/build/outputs/apk -name "*.apk" ! -name "nuvio-arm64.apk" ! -name "nuvio-v7a.apk" | head -1 | xargs -I{} mv {} app/build/outputs/apk/full/debug/nuvio-universal.apk
+        run: |
+          APK=$(find . -name "*.apk" -type f 2>/dev/null | grep -v "nuvio-arm64" | grep -v "nuvio-v7a" | head -1)
+          echo "Found APK: $APK"
+          cp "$APK" app/build/outputs/apk/full/debug/nuvio-universal.apk
 
       - name: Create Release
         id: create_release
