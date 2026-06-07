@@ -46,7 +46,6 @@ jobs:
 
       - name: Save arm64 APK
         run: |
-          # Cerchiamo qualsiasi file .apk o .aab generato nel progetto
           FILE=$(find . -type f \( -name "*.apk" -o -name "*.aab" \) 2>/dev/null | grep -v "dist/" | head -1)
           if [ -z "$FILE" ]; then
             echo "[ERROR] Nessun file APK o AAB trovato dopo la build arm64!"
@@ -55,10 +54,8 @@ jobs:
             exit 1
           fi
           echo "Found file: $FILE"
-          # Estraiamo l'estensione originale (.apk o .aab)
           EXT="${FILE##*.}"
           cp "$FILE" "dist/nuvio-arm64.$EXT"
-          # Puliamo solo i file generati per non ritrovarli al prossimo step
           find . -type f \( -name "*.apk" -o -name "*.aab" \) -not -path "./dist/*" -delete
 
       # --- 2. ARMEABI-V7A ---
@@ -101,54 +98,18 @@ jobs:
             cp "$FILE" "dist/nuvio-universal.$EXT"
           fi
 
-      # --- RELEASE AND UPLOAD ---
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      # --- CREAZIONE RELEASE E CARICAMENTO ALLEGATI ---
+      - name: Create and Upload Release Assets
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: build-${{ github.run_number }}
-          release_name: "Build #${{ github.run_number }}"
+          name: "Build #${{ github.run_number }}"
           body: "Build automatica dal branch ${{ github.ref_name }}"
           draft: false
           prerelease: true
-
-      - name: Upload arm64 Artifact
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ (find dist/ -name "nuvio-arm64.*" | head -1) }}
-          asset_name: ${{ (basename $(find dist/ -name "nuvio-arm64.*" | head -1)) }}
-          asset_content_type: application/octet-stream
-
-      - name: Upload v7a Artifact
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ (find dist/ -name "nuvio-v7a.*" | head -1) }}
-          asset_name: ${{ (basename $(find dist/ -name "nuvio-v7a.*" | head -1)) }}
-          asset_content_type: application/octet-stream
-
-      - name: Upload universal Artifact
-        if: steps.build_universal.outcome == 'success'
-        run: |
-          UNI_FILE=$(find dist/ -name "nuvio-universal.*" | head -1)
-          if [ ! -z "$UNI_FILE" ]; then
-            echo "Uploading universal artifact..."
-          fi
-        # Nota: Per caricare dinamicamente l'estensione nell'azione usiamo uno step bash standard più flessibile per l'universal
-      - name: Upload universal Artifact (Action)
-        if: steps.build_universal.outcome == 'success'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ (find dist/ -name "nuvio-universal.*" | head -1) }}
-          asset_name: ${{ (basename $(find dist/ -name "nuvio-universal.*" | head -1)) }}
-          asset_content_type: application/octet-stream
+          files: |
+            dist/nuvio-arm64.*
+            dist/nuvio-v7a.*
+            dist/nuvio-universal.*
