@@ -22,13 +22,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Set Gradle JVM args
-        run: printf "\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m\n" >> gradle.properties
-
-      # Forza la rimozione di testOnly="true" da qualsiasi AndroidManifest.xml nel progetto
-      - name: Force disable testOnly flag
-        run: |
-          find . -name "AndroidManifest.xml" -exec sed -i 's/android:testOnly="true"//g' {} +
-          find . -name "AndroidManifest.xml" -exec sed -i 's/android:testOnly=\x27true\x27//g' {} +
+        run: printf "\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m\nandroid.injected.testOnly=false\n" >> gradle.properties
 
       - name: Generate temporary keystore
         run: |
@@ -44,7 +38,7 @@ jobs:
 
       # --- 1. ARM64 ---
       - name: Build APK arm64-v8a
-        run: ./gradlew :app:assembleFullRelease -Pandroid.injected.build.abi=arm64-v8a
+        run: ./gradlew :app:assembleFullRelease -Pandroid.injected.build.abi=arm64-v8a -Pandroid.injected.testOnly=false
         env:
           NUVIO_RELEASE_KEY_ALIAS: nuviotv
           NUVIO_RELEASE_KEY_PASSWORD: "815787"
@@ -63,7 +57,7 @@ jobs:
 
       # --- 2. ARMEABI-V7A ---
       - name: Build APK armeabi-v7a
-        run: ./gradlew :app:assembleFullRelease -Pandroid.injected.build.abi=armeabi-v7a
+        run: ./gradlew :app:assembleFullRelease -Pandroid.injected.build.abi=armeabi-v7a -Pandroid.injected.testOnly=false
         env:
           NUVIO_RELEASE_KEY_ALIAS: nuviotv
           NUVIO_RELEASE_KEY_PASSWORD: "815787"
@@ -84,7 +78,7 @@ jobs:
       - name: Build APK universal
         continue-on-error: true
         id: build_universal
-        run: ./gradlew :app:assembleFullRelease
+        run: ./gradlew :app:assembleFullRelease -Pandroid.injected.testOnly=false
         env:
           NUVIO_RELEASE_KEY_ALIAS: nuviotv
           NUVIO_RELEASE_KEY_PASSWORD: "815787"
