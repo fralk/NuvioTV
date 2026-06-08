@@ -24,6 +24,12 @@ jobs:
       - name: Set Gradle JVM args
         run: printf "\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m\n" >> gradle.properties
 
+      # Forza la rimozione di testOnly="true" da qualsiasi AndroidManifest.xml nel progetto
+      - name: Force disable testOnly flag
+        run: |
+          find . -name "AndroidManifest.xml" -exec sed -i 's/android:testOnly="true"//g' {} +
+          find . -name "AndroidManifest.xml" -exec sed -i 's/android:testOnly=\x27true\x27//g' {} +
+
       - name: Generate temporary keystore
         run: |
           keytool -genkey -v -keystore nuviotv.jks \
@@ -49,7 +55,6 @@ jobs:
           FILE=$(find . -type f \( -name "*.apk" -o -name "*.aab" \) 2>/dev/null | grep -v "dist/" | head -1)
           if [ -z "$FILE" ]; then
             echo "[ERROR] Nessun file APK o AAB trovato dopo la build arm64!"
-            find . -maxdepth 4 -not -path '*/.*'
             exit 1
           fi
           EXT="${FILE##*.}"
