@@ -38,7 +38,7 @@ jobs:
 
       # --- 1. ARM64 ---
       - name: Build APK arm64-v8a
-        run: ./gradlew :app:assembleFullDebug -Pandroid.injected.build.abi=arm64-v8a
+        run: ./gradlew :app:assembleFullRelease -Pandroid.injected.build.abi=arm64-v8a
         env:
           NUVIO_RELEASE_KEY_ALIAS: nuviotv
           NUVIO_RELEASE_KEY_PASSWORD: "815787"
@@ -49,18 +49,16 @@ jobs:
           FILE=$(find . -type f \( -name "*.apk" -o -name "*.aab" \) 2>/dev/null | grep -v "dist/" | head -1)
           if [ -z "$FILE" ]; then
             echo "[ERROR] Nessun file APK o AAB trovato dopo la build arm64!"
-            echo "Ecco la struttura dei file generati per capire dove sono finiti:"
             find . -maxdepth 4 -not -path '*/.*'
             exit 1
           fi
-          echo "Found file: $FILE"
           EXT="${FILE##*.}"
           cp "$FILE" "dist/nuvio-arm64.$EXT"
           find . -type f \( -name "*.apk" -o -name "*.aab" \) -not -path "./dist/*" -delete
 
       # --- 2. ARMEABI-V7A ---
       - name: Build APK armeabi-v7a
-        run: ./gradlew :app:assembleFullDebug -Pandroid.injected.build.abi=armeabi-v7a
+        run: ./gradlew :app:assembleFullRelease -Pandroid.injected.build.abi=armeabi-v7a
         env:
           NUVIO_RELEASE_KEY_ALIAS: nuviotv
           NUVIO_RELEASE_KEY_PASSWORD: "815787"
@@ -73,7 +71,6 @@ jobs:
             echo "[ERROR] Nessun file APK o AAB trovato dopo la build v7a!"
             exit 1
           fi
-          echo "Found file: $FILE"
           EXT="${FILE##*.}"
           cp "$FILE" "dist/nuvio-v7a.$EXT"
           find . -type f \( -name "*.apk" -o -name "*.aab" \) -not -path "./dist/*" -delete
@@ -82,7 +79,7 @@ jobs:
       - name: Build APK universal
         continue-on-error: true
         id: build_universal
-        run: ./gradlew :app:assembleFullDebug
+        run: ./gradlew :app:assembleFullRelease
         env:
           NUVIO_RELEASE_KEY_ALIAS: nuviotv
           NUVIO_RELEASE_KEY_PASSWORD: "815787"
@@ -93,7 +90,6 @@ jobs:
         run: |
           FILE=$(find . -type f \( -name "*.apk" -o -name "*.aab" \) 2>/dev/null | grep -v "dist/" | head -1)
           if [ ! -z "$FILE" ]; then
-            echo "Found file: $FILE"
             EXT="${FILE##*.}"
             cp "$FILE" "dist/nuvio-universal.$EXT"
           fi
